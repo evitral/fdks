@@ -13,7 +13,7 @@ clear variables
 %                Parameters of the dynamics                     %
 %---------------------------------------------------------------%
 
-alpha = 0.02;      % unclear physical meaning (B&H, alpha = 0)
+alpha = 0.15;   % unclear physical meaning (B&H, alpha = 0)
 teta  = 0.5236;    % angle of incidence of the beam (normal, teta=0)
 
 s = sin(teta);     % sin teta
@@ -37,12 +37,13 @@ dE = 1.25;         % surface diffusion activate energy
 %                           Mesh                                %
 %---------------------------------------------------------------%
 
-L = 31;
+L = 32;
 
-np = 65;
+np = 33;
 
 dX = L/(np-1);
 dY = dX;
+
 
 %dX = 1;         
 %dY = 1;         
@@ -56,8 +57,8 @@ dY = dX;
 %---------------------------------------------------------------%
 
 %dtau = 2*F*amu^2*dt/a;
-dtau = 0.1;
-ntau = 3000;
+dtau = .1;
+ntau = 5000;
 tmax = ntau*dtau;
 
 Kt = (amu^2*0.54*10^16/T)*exp(-dE*1.16*10^4/T)*exp(-amu^2*s^2/2);
@@ -79,15 +80,17 @@ Dxy = 2*(c^2-2*s^2+(amu*s*c)^2); % 2 times Dxy actually
 alphat = (dtau/4)*alpha;
 
 beta = (Dxx+Kt)/(dX^4);
-beta2 = (dtau/2)*beta;  
+beta2 = (dtau/2)*beta;
+
 gamma = Kt/(dY^4);
 gamma2 = (dtau/2)*gamma;
 
 delta = mut/dX^2;   % d^2h/dX^2
 zeta = c^2/dY^2;   % d^2h/dY^2
 
-eta = nuxt/(2*dX^2);   % (dh/dX)^2   MUDEEEI ERA 4 !11!!!!
-psi = c^3/(2*dY^2);   % (dh/dY)^2    MUDEEEEI AQUI ERA 4 !1!!!1!
+eta = nuxt/(2*dX^2);   % (dh/dX)^2   MUDEEEI 
+psi = c^3/(2*dY^2);   % (dh/dY)^2     MUDEEEIIII
+
 
 omega = (Dxy-2*Kt)/(dX^2*dY^2);   % d^4h/dX^2dY^2
 phi = c^2/dY^4;   % d^4h/dY^4
@@ -158,11 +161,13 @@ hm1 = zeros(np,np);
 
 for j = 1:np
     for i = 1:np
-        hn(j,i) = 0.1*(2*rand-1);
+        %hn(j,i) = 0.1*(2*rand-1);
         %hn(j,i)= 0.1*rand;
-        %hn(j,i) = 0.1*sin(6*pi()*i/np)-0.05;
+        hn(j,i)=0.1*sin(6*pi()*j/np)-0.05;
     end
 end
+
+
 
 h0 = hn;       % keeps the initial conditions
 
@@ -417,6 +422,7 @@ for t = 1:nmax
 %---------------------------------------------------------------%
 %                      Splitting Scheme                         %
 %---------------------------------------------------------------%
+
 
        Mf = dtau*(Mfn + Mfm);
         
