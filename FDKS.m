@@ -155,7 +155,7 @@ for j = 1:np
     for i = 1:np
         %hn(j,i) = 0.1*(2*rand-1);
         %hn(j,i)= 0.1*rand;
-        hn(j,i) = 0.1*sin(0.25*2*pi()*i/(np+1));
+        hn(j,i) = 0.1*sin(2*2*pi()*i/(np+1));
     end
 end
 
