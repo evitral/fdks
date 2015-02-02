@@ -11,6 +11,17 @@ clear variables
 fid = fopen('log10L1.txt','w');
 fprintf(fid, ['log10L1' '\n']);
 
+ld = 2;   % ld = 1: load file
+
+if ld == 1
+    
+    load arquivo.mat
+    t1 = t;
+
+else    
+
+    t1 = 1;
+    
 %---------------------------------------------------------------%
 %                Parameters of the dynamics                     %
 %---------------------------------------------------------------%
@@ -155,7 +166,7 @@ for j = 1:np
     for i = 1:np
         %hn(j,i) = 0.1*(2*rand-1);
         %hn(j,i)= 0.1*rand;
-        hn(j,i) = 0.1*sin(2*2*pi()*i/(np+1));
+        hn(j,i) = 0.1*sin(14*2*pi()*j/(np+1));
     end
 end
 
@@ -195,7 +206,11 @@ L1=zeros(1,nmax/10);
 
 flag = 1; % L1 control
 
-for t = 1:nmax
+
+
+end
+
+for t = t1:nmax
     pass = 1;
     k = 1;
     hm = hn;
