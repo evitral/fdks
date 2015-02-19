@@ -178,14 +178,15 @@ h0 = hn;       % keeps the initial conditions
 
 maxHN = zeros(1,ntau/10); % Keeps highest hn values
 maxIT = zeros(1,ntau/10); % Records the internal iterations value
+
 movieA = [10  30  60 100 150 200 250 300 350 400 ...
           450 500 600 700 850 1000 1250 1500 2000 2500 ... 
           3000 3500 4000 4500 5000 5500 6000 6500 7000 7500 ...
           8000 8500 9000 9500 10000 10500 11000 11500 12000 12500 ...
-          13000 14000 15000 16000 17000 18000 20000 23000 26000 30000];
-          
-movieH = zeros(np,np,50);
-
+          13000 14000 15000 16000 17000 18000 20000 23000 26000 30000 ...
+          50000 100000 150000 200000 250000 300000 350000 400000 450000];
+      
+movieH = zeros(np,np,59);
 
 %---------------------------------------------------------------%
 %                             Main                              %
@@ -195,18 +196,12 @@ Mfn = zeros(np,np);
 Mfm = zeros(np,np);
 Mf  = zeros(np,np);
 
-Lyh=zeros(1,np);
-Lyh1=zeros(1,np);
-Lyh2=zeros(1,np);
-Lyhnpm=zeros(1,np);
-Lyhnp=zeros(1,np);
+Lyh=zeros(np,np);
 
 nmax = int32(tmax/dtau+1);
 L1=zeros(1,nmax/10);
 
 flag = 1; % L1 control
-
-
 
 end
 
@@ -317,7 +312,33 @@ for t = t1:nmax
     Mfn(np,np) = fn(deck,hn,Vji);
 
 %---------------------------------------------------------------%
-
+%         Beta Test                                             %
+%---------------------------------------------------------------%
+        
+    for col = 1:np
+       Lyh(1,col) = -gamma2*hn(npm,col)+4*gamma2*hn(np,col)...
+       -(6*gamma2+alphat)*hn(1,col)+4*gamma2*hn(2,col)-gamma2*hn(3,col);
+   
+       Lyh(2,col) = -gamma2*hn(np,col)+4*gamma2*hn(1,col)...
+       -(6*gamma2+alphat)*hn(2,col)+4*gamma2*hn(3,col)-gamma2*hn(4,col);
+   
+       Lyh(npm,col) = -gamma2*hn(npmmm,col)+4*gamma2*hn(npmm,col)...
+       -(6*gamma2+alphat)*hn(npm,col)+4*gamma2*hn(np,col)-gamma2*hn(1,col);
+   
+       Lyh(np,col) = -gamma2*hn(npmm,col)+4*gamma2*hn(npm,col)...
+       -(6*gamma2+alphat)*hn(np,col)+4*gamma2*hn(1,col)-gamma2*hn(2,col);
+    end
+    
+    for lin = 3:npmm
+        for col = 1:np
+        Lyh(lin,col) = -gamma2*hn(lin-2,col)+4*gamma2*hn(lin-1,col)...
+        -(6*gamma2+alphat)*hn(lin,col)+4*gamma2*hn(lin+1,col)...
+        -gamma2*hn(lin+2,col);
+        end        
+    end
+    
+%---------------------------------------------------------------%
+    
     while pass == 1
         
 %---------------------------------------------------------------%
@@ -427,33 +448,9 @@ for t = t1:nmax
 %---------------------------------------------------------------%
 
        Mf = dtau*(Mfn + Mfm);
-        
-       for col = 1:np
-       Lyh1(col) = -gamma2*hn(npm,col)+4*gamma2*hn(np,col)...
-       -(6*gamma2+alphat)*hn(1,col)+4*gamma2*hn(2,col)-gamma2*hn(3,col);
-   
-       Lyh2(col) = -gamma2*hn(np,col)+4*gamma2*hn(1,col)...
-       -(6*gamma2+alphat)*hn(2,col)+4*gamma2*hn(3,col)-gamma2*hn(4,col);
-   
-       Lyhnpm(col) = -gamma2*hn(npmmm,col)+4*gamma2*hn(npmm,col)...
-       -(6*gamma2+alphat)*hn(npm,col)+4*gamma2*hn(np,col)-gamma2*hn(1,col);
-   
-       Lyhnp(col) = -gamma2*hn(npmm,col)+4*gamma2*hn(npm,col)...
-       -(6*gamma2+alphat)*hn(np,col)+4*gamma2*hn(1,col)-gamma2*hn(2,col);
-       end
-       htil(1,:) = M1i*(M3*hn(1,:)'+2*Lyh1' + Mf(1,:)');
-       htil(2,:) = M1i*(M3*hn(2,:)'+2*Lyh2' + Mf(2,:)');
-       htil(npm,:) = M1i*(M3*hn(npm,:)'+2*Lyhnpm' + Mf(npm,:)');
-       htil(np,:) = M1i*(M3*hn(np,:)'+2*Lyhnp' + Mf(np,:)');
-
        
-        for lin = 3:npmm
-            for col = 1:np
-            Lyh(col) = -gamma2*hn(lin-2,col)+4*gamma2*hn(lin-1,col)...
-            -(6*gamma2+alphat)*hn(lin,col)+4*gamma2*hn(lin+1,col)...
-            -gamma2*hn(lin+2,col);
-            end
-            htil(lin,:) = M1i*(M3*hn(lin,:)'+2*Lyh' + Mf(lin,:)');
+        for lin = 1:np
+            htil(lin,:) = M1i*(M3*hn(lin,:)'+2*Lyh(lin,:)' + Mf(lin,:)');
         end
         
         for col = 1:np
@@ -478,8 +475,7 @@ for t = t1:nmax
 %              Routine after each 10 time steps                 %
 %---------------------------------------------------------------%
     
-    r=mod(t,10.);
-    if r==0
+    if mod(t,10.) == 0
     
     tr = t/10;
         
@@ -512,6 +508,11 @@ for t = t1:nmax
         flag = 2;
     end
     
+     if mod(t,500.) == 0
+         hn = hm1;
+         save testmat    
+     end
+        
     end
     
     if flag == 2;
@@ -523,3 +524,5 @@ for t = t1:nmax
     hn = hm1;
     
 end
+
+save testmat

@@ -42,7 +42,7 @@ dE = 1.25;         % surface diffusion activate energy
 
 L = 256;     % fixed mesh size for the MMS validation
 
-np = 17;
+np = 129;
 
 dX = L/(np-1);
 dY = L/(np-1);
