@@ -11,9 +11,9 @@ clear variables
 fid = fopen('log10L1.txt','w');
 fprintf(fid, ['log10L1' '\n']);
 
-ld = 1;   % ld = 1: load file
+ld = 2;   % ld = 1: load file
 
-if ld == 1
+if ld == 2
     
     load q1Ya015teta05236k5np256dx2pi28.mat
     t1 = t;
@@ -27,7 +27,7 @@ else
 %---------------------------------------------------------------%
 
 alpha = 0.15;      % unclear physical meaning (B&H, alpha = 0)
-teta  = 0.75;    % angle of incidence of the beam (normal, teta=0)
+teta  = 0.5236;    % angle of incidence of the beam (normal, teta=0)
 
 s = sin(teta);     % sin teta
 c = cos(teta);     % cos teta
@@ -50,11 +50,11 @@ dE = 1.25;         % surface diffusion activate energy
 %                           Mesh                                %
 %---------------------------------------------------------------%
 
-L = 63.5;
+L = 510;
 
-np = 128;
+np = 256;
 
-dX = L./(np-1);
+dX = L/(np-1);
 dY = dX;
 
 %---------------------------------------------------------------%
@@ -62,17 +62,15 @@ dY = dX;
 %---------------------------------------------------------------%
 
 %dtau = 2*F*amu^2*dt/a;
-dtau = 0.0005;
+dtau = 0.1;
 ntau = 1000000;
 tmax = ntau*dtau;
 
 Kt = (amu^2*0.54*10^16/T)*exp(-dE*1.16*10^4/T)*exp(-amu^2*s^2/2);
-Kt = 0.1;
+Kt = 5.0;
 mut = 2*s^2-c^2-(amu*s*c)^2;
 
 nuxt = c*(3*s^2-c^2-(amu*s*c)^2); 
-
-
 
 %---------------------------------------------------------------%
 %                      Useful constants                         %
@@ -99,6 +97,8 @@ omega = (Dxy-2*Kt)/(dX^2*dY^2);   % d^4h/dX^2dY^2
 phi = c^2/dY^4;   % d^4h/dY^4
 
 deck = [delta,zeta,eta,psi,omega,phi];
+
+sg2at = 6*gamma2+alphat;
 
 npm = np-1;
 npmm = np-2;
@@ -130,7 +130,7 @@ Ly((np-1):np,(np-3):np) = gamma2*[-1 4 -6 4;0 -1 4 -6]+...
     alphat*[0 0 -1 0;0 0 0 -1];
 Ly((np-1):np,1:2) = gamma2*[-1 0;4 -1];
 
-for i = 3:(np-2)
+for i = 3:npmm
     Ly(i,(i-2):(i+2)) = gamma2*[-1 4 -6 4 -1]+alphat*[0 0 -1 0 0];
 end
 
@@ -157,16 +157,15 @@ M5 = Ly;
 %---------------------------------------------------------------%
 
 hn = zeros(np,np);
-%ghn = zeros(np,np,ntau/10);
 hm = zeros(np,np);
 htil = zeros(np,np);
 hm1 = zeros(np,np);
 
-for j = 1:np
-    for i = 1:np
-        %hn(j,i) = 0.1*(2*rand-1);
-        %hn(j,i)= 0.1*rand;
-        hn(j,i) = 0.1*sin(4*2*pi()*i/(np+1));
+for y = 1:np
+    for x = 1:np
+        %hn(y,x) = 0.1*(2*rand-1);
+        %hn(y,x)= 0.1*rand;
+        hn(y,x) = 0.1*sin(20.728*2*pi()*y/(np+1));
     end
 end
 
@@ -208,8 +207,18 @@ end
 
 saveMode = 1;
 
+sg2at = 6*gamma2+alphat;
+
+% Vectorization %
+
+vlin = 1:np;
+vcol = 1:np;
+
+vlinmm = 3:npmm;
+vcolmm = 3:npmm;
+
 for t = t1:nmax
-    tic
+tic
     pass = 1;
     k = 1;
     hm = hn;
@@ -219,128 +228,99 @@ for t = t1:nmax
 %---------------------------------------------------------------%
 
     % Line 1 %
-    
-    Vji = [1,2,3,np,npm,1,2,3,np,npm];
-    Mfn(1,1) = fn(deck,hn,Vji);
+        
+    Mfn(1,1) = fn(deck,hn,[1,2,3,np,npm,1,2,3,np,npm]);
 
-    Vji(6:10) = [2,3,4,1,np];
-    Mfn(1,2) = fn(deck,hn,Vji);
+    Mfn(1,2) = fn(deck,hn,[1,2,3,np,npm,2,3,4,1,np]);
 
-    for i = 3:npmm
-        Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-        Mfn(1,i) = fn(deck,hn,Vji);
-    end
+    Mfn(1,npm) = fn(deck,hn,[1,2,3,np,npm,npm,np,1,npmm,npmmm]);
 
-    Vji(6:10) = [npm,np,1,npmm,npmmm];
-    Mfn(1,npm) = fn(deck,hn,Vji);
-
-    Vji(6:10) = [np,1,2,npm,npmm];
-    Mfn(1,np) = fn(deck,hn,Vji);
+    Mfn(1,np) = fn(deck,hn,[1,2,3,np,npm,np,1,2,npm,npmm]);
 
     % Line 2 %
 
-    Vji = [2,3,4,1,np,1,2,3,np,npm];
-    Mfn(2,1) = fn(deck,hn,Vji);
+    Mfn(2,1) = fn(deck,hn,[2,3,4,1,np,1,2,3,np,npm]);
 
-    Vji(6:10) = [2,3,4,1,np];
-    Mfn(2,2) = fn(deck,hn,Vji);
+    Mfn(2,2) = fn(deck,hn,[2,3,4,1,np,2,3,4,1,np]);
 
-    for i = 3:npmm
-        Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-        Mfn(2,i) = fn(deck,hn,Vji); 
-    end
+    Mfn(2,npm) = fn(deck,hn,[2,3,4,1,np,npm,np,1,npmm,npmmm]);
 
-    Vji(6:10) = [npm,np,1,npmm,npmmm];
-    Mfn(2,npm) = fn(deck,hn,Vji);
+    Mfn(2,np) = fn(deck,hn,[2,3,4,1,np,np,1,2,npm,npmm]);
 
-    Vji(6:10) = [np,1,2,npm,npmm];
-    Mfn(2,np) = fn(deck,hn,Vji);
+	% Superior and inferior borders %
 
-    % Main %
+	for x = 3:npmm
 
-    for j = 3:npmm
-        Vji = [j,j+1,j+2,j-1,j-2,1,2,3,np,npm];
-        Mfn(j,1) = fn(deck,hn,Vji);
+    Mfn(1,x) = fn(deck,hn,[1,2,3,np,npm,x,x+1,x+2,x-1,x-2]);
+	
+	Mfn(2,x) = fn(deck,hn,[2,3,4,1,np,x,x+1,x+2,x-1,x-2]);
 
-        Vji(6:10) = [2,3,4,1,np];
-        Mfn(j,2) = fn(deck,hn,Vji);
+    Mfn(npm,x) = fn(deck,hn,[npm,np,1,npmm,npmmm,x,x+1,x+2,x-1,x-2]);
+    
+    Mfn(np,x) = fn(deck,hn,[np,1,2,npm,npmm,x,x+1,x+2,x-1,x-2]);
 
+	end
+
+	% Middle %
+   
+    for y = 3:npmm
+    
+    yp=y+1; ypp=y+2; ym=y-1; ymm=y-2;    
+        
+    Mfn(y,1) = fn(deck,hn,[y,yp,ypp,ym,ymm,1,2,3,np,npm]);
+    
+    Mfn(y,2) = fn(deck,hn,[y,yp,ypp,ym,ymm,2,3,4,1,np]);
+    
         for i = 3:npmm
-            Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-            Mfn(j,i) = fn(deck,hn,Vji);
+        Mfn(y,i) = fn(deck,hn,[y,yp,ypp,ym,ymm,i,i+1,i+2,i-1,i-2]);
         end
     
-        Vji(6:10) = [npm,np,1,npmm,npmmm];
-        Mfn(j,(np-1)) = fn(deck,hn,Vji);
-
-        Vji(6:10) = [np,1,2,npm,npmm];
-        Mfn(j,np) = fn(deck,hn,Vji);
+    Mfn(y,npm) = fn(deck,hn,[y,yp,ypp,ym,ymm,npm,np,1,npmm,npmmm]);
+    
+    Mfn(y,np) = fn(deck,hn,[y,yp,ypp,ym,ymm,np,1,2,npm,npmm]);
+    
     end
 
     % Line np-1 %
 
-    Vji = [npm,np,1,npmm,npmmm,1,2,3,np,npm];
-    Mfn(npm,1) = fn(deck,hn,Vji);
+    Mfn(npm,1) = fn(deck,hn,[npm,np,1,npmm,npmmm,1,2,3,np,npm]);
 
-    Vji(6:10) = [2,3,4,1,np];
-    Mfn(npm,2) = fn(deck,hn,Vji);
+    Mfn(npm,2) = fn(deck,hn,[npm,np,1,npmm,npmmm,2,3,4,1,np]);
 
-    for i = 3:npmm
-        Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-        Mfn(npm,i) = fn(deck,hn,Vji);
-    end
+    Mfn(npm,npm) = fn(deck,hn,[npm,np,1,npmm,npmmm,npm,np,1,npmm,npmmm]);
 
-    Vji(6:10) = [npm,np,1,npmm,npmmm];
-    Mfn(npm,npm) = fn(deck,hn,Vji);
-
-    Vji(6:10) = [np,1,2,npm,npmm];
-    Mfn(npm,np) = fn(deck,hn,Vji);
+    Mfn(npm,np) = fn(deck,hn,[npm,np,1,npmm,npmmm,np,1,2,npm,npmm]);
 
     % Line np %
 
-    Vji = [np,1,2,npm,npmm,1,2,3,np,npm];
-    Mfn(np,1) = fn(deck,hn,Vji);
-
-    Vji(6:10) = [2,3,4,1,np];
-    Mfn(np,2) = fn(deck,hn,Vji);
-
-    for i = 3:npmm
-        Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-        Mfn(np,i) = fn(deck,hn,Vji);
-    end
-
-    Vji(6:10) = [npm,np,1,npmm,npmmm];
-    Mfn(np,npm) = fn(deck,hn,Vji);
-
-    Vji(6:10) = [np,1,2,npm,npmm];
-    Mfn(np,np) = fn(deck,hn,Vji);
+    Mfn(np,1) = fn(deck,hn,[np,1,2,npm,npmm,1,2,3,np,npm]);
+    
+    Mfn(np,2) = fn(deck,hn,[np,1,2,npm,npmm,2,3,4,1,np]);
+    
+    Mfn(np,npm) = fn(deck,hn,[np,1,2,npm,npmm,npm,np,1,npmm,npmmm]);
+    
+    Mfn(np,np) = fn(deck,hn,[np,1,2,npm,npmm,np,1,2,npm,npmm]);
 
 %---------------------------------------------------------------%
-%         Beta Test                                             %
+%                    Operator Y - rows                          %
 %---------------------------------------------------------------%
-        
-    for col = 1:np
-       Lyh(1,col) = -gamma2*hn(npm,col)+4*gamma2*hn(np,col)...
-       -(6*gamma2+alphat)*hn(1,col)+4*gamma2*hn(2,col)-gamma2*hn(3,col);
+
+    Lyh(1,vcol) = -gamma2*hn(npm,vcol)+4*gamma2*hn(np,vcol)...
+       -sg2at*hn(1,vcol)+4*gamma2*hn(2,vcol)-gamma2*hn(3,vcol);
    
-       Lyh(2,col) = -gamma2*hn(np,col)+4*gamma2*hn(1,col)...
-       -(6*gamma2+alphat)*hn(2,col)+4*gamma2*hn(3,col)-gamma2*hn(4,col);
+    Lyh(2,vcol) = -gamma2*hn(np,vcol)+4*gamma2*hn(1,vcol)...
+       -sg2at*hn(2,vcol)+4*gamma2*hn(3,vcol)-gamma2*hn(4,vcol);
    
-       Lyh(npm,col) = -gamma2*hn(npmmm,col)+4*gamma2*hn(npmm,col)...
-       -(6*gamma2+alphat)*hn(npm,col)+4*gamma2*hn(np,col)-gamma2*hn(1,col);
+    Lyh(npm,vcol) = -gamma2*hn(npmmm,vcol)+4*gamma2*hn(npmm,vcol)...
+       -sg2at*hn(npm,vcol)+4*gamma2*hn(np,vcol)-gamma2*hn(1,vcol);
    
-       Lyh(np,col) = -gamma2*hn(npmm,col)+4*gamma2*hn(npm,col)...
-       -(6*gamma2+alphat)*hn(np,col)+4*gamma2*hn(1,col)-gamma2*hn(2,col);
-    end
-    
-    for lin = 3:npmm
-        for col = 1:np
-        Lyh(lin,col) = -gamma2*hn(lin-2,col)+4*gamma2*hn(lin-1,col)...
-        -(6*gamma2+alphat)*hn(lin,col)+4*gamma2*hn(lin+1,col)...
-        -gamma2*hn(lin+2,col);
-        end        
-    end
-    
+    Lyh(np,vcol) = -gamma2*hn(npmm,vcol)+4*gamma2*hn(npm,vcol)...
+       -sg2at*hn(np,vcol)+4*gamma2*hn(1,vcol)-gamma2*hn(2,vcol);
+ 
+    Lyh(vlinmm,vcol) = -gamma2*hn(vlinmm-2,vcol)+ ...
+        4*gamma2*hn(vlinmm-1,vcol)-sg2at*hn(vlinmm,vcol)+ ...
+        4*gamma2*hn(vlinmm+1,vcol)-gamma2*hn(vlinmm+2,vcol);    
+     
 %---------------------------------------------------------------%
     
     while pass == 1
@@ -349,103 +329,79 @@ for t = t1:nmax
 %                       Assembly Mfm                            %
 %---------------------------------------------------------------%
 
-        % Line 1 %
+    % Line 1 %
         
-        Vji = [1,2,3,np,npm,1,2,3,np,npm];
-        Mfm(1,1) = fm(deck,hm,hn,Vji);
+    Mfm(1,1) = fm(deck,hm,hn,[1,2,3,np,npm,1,2,3,np,npm]);
 
-        Vji(6:10) = [2,3,4,1,np];
-        Mfm(1,2) = fm(deck,hm,hn,Vji);
+    Mfm(1,2) = fm(deck,hm,hn,[1,2,3,np,npm,2,3,4,1,np]);
 
-        for i = 3:npmm
-            Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-            Mfm(1,i) = fm(deck,hm,hn,Vji);
-        end
+    Mfm(1,npm) = fm(deck,hm,hn,[1,2,3,np,npm,npm,np,1,npmm,npmmm]);
 
-        Vji(6:10) = [npm,np,1,npmm,npmmm];
-        Mfm(1,npm) = fm(deck,hm,hn,Vji);
+    Mfm(1,np) = fm(deck,hm,hn,[1,2,3,np,npm,np,1,2,npm,npmm]);
 
-        Vji(6:10) = [np,1,2,npm,npmm];
-        Mfm(1,np) = fm(deck,hm,hn,Vji);
+    % Line 2 %
 
-        % Line 2 %
+    Mfm(2,1) = fm(deck,hm,hn,[2,3,4,1,np,1,2,3,np,npm]);
 
-        Vji = [2,3,4,1,np,1,2,3,np,npm];
-        Mfm(2,1) = fm(deck,hm,hn,Vji);
+    Mfm(2,2) = fm(deck,hm,hn,[2,3,4,1,np,2,3,4,1,np]);
 
-        Vji(6:10) = [2,3,4,1,np];
-        Mfm(2,2) = fm(deck,hm,hn,Vji);
+    Mfm(2,npm) = fm(deck,hm,hn,[2,3,4,1,np,npm,np,1,npmm,npmmm]);
 
-        for i = 3:npmm
-            Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-            Mfm(2,i) = fm(deck,hm,hn,Vji);
-        end
+    Mfm(2,np) = fm(deck,hm,hn,[2,3,4,1,np,np,1,2,npm,npmm]);
 
-        Vji(6:10) = [npm,np,1,npmm,npmmm];
-        Mfm(2,npm) = fm(deck,hm,hn,Vji);
+	% Superior and inferior borders %
 
-        Vji(6:10) = [np,1,2,npm,npmm];
-        Mfm(2,np) = fm(deck,hm,hn,Vji);
+	for x = 3:npmm
 
-        % Main %
+    Mfm(1,x) = fm(deck,hm,hn,[1,2,3,np,npm,x,x+1,x+2,x-1,x-2]);
+	
+	Mfm(2,x) = fm(deck,hm,hn,[2,3,4,1,np,x,x+1,x+2,x-1,x-2]);
 
-        for j = 3:npmm
-            Vji = [j,j+1,j+2,j-1,j-2,1,2,3,np,npm];
-            Mfm(j,1) = fm(deck,hm,hn,Vji);
-
-            Vji(6:10) = [2,3,4,1,np];
-            Mfm(j,2) = fm(deck,hm,hn,Vji);
-
-            for i = 3:npmm
-                Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-                Mfm(j,i) = fm(deck,hm,hn,Vji);
-            end
+    Mfm(npm,x) = fm(deck,hm,hn,[npm,np,1,npmm,npmmm,x,x+1,x+2,x-1,x-2]);
     
-            Vji(6:10) = [npm,np,1,npmm,npmmm];
-            Mfm(j,(np-1)) = fm(deck,hm,hn,Vji);
+    Mfm(np,x) = fm(deck,hm,hn,[np,1,2,npm,npmm,x,x+1,x+2,x-1,x-2]);
 
-            Vji(6:10) = [np,1,2,npm,npmm];
-            Mfm(j,np) = fm(deck,hm,hn,Vji);
+	end
+
+	% Middle %
+
+    for y = 3:npmm
     
+    yp=y+1; ypp=y+2; ym=y-1; ymm=y-2; 
+        
+    Mfm(y,1) = fm(deck,hm,hn,[y,yp,ypp,ym,ymm,1,2,3,np,npm]);
+    
+    Mfm(y,2) = fm(deck,hm,hn,[y,yp,ypp,ym,ymm,2,3,4,1,np]);
+
+        for x = 3:npmm            
+        Mfm(y,x) = fm(deck,hm,hn,[y,yp,ypp,ym,ymm,x,x+1,x+2,x-1,x-2]);
         end
 
-        % Line np-1 %
+    Mfm(y,npm) = fm(deck,hm,hn,[y,yp,ypp,ym,ymm,npm,np,1,npmm,npmmm]);
+    
+    Mfm(y,np) = fm(deck,hm,hn,[y,yp,ypp,ym,ymm,np,1,2,npm,npmm]);
+    
+    end
 
-        Vji = [npm,np,1,npmm,npmmm,1,2,3,np,npm];
-        Mfm(npm,1) = fm(deck,hm,hn,Vji);
+    % Line np-1 %
 
-        Vji(6:10) = [2,3,4,1,np];
-        Mfm(npm,2) = fm(deck,hm,hn,Vji);
+    Mfm(npm,1) = fm(deck,hm,hn,[npm,np,1,npmm,npmmm,1,2,3,np,npm]);
 
-        for i = 3:npmm
-            Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-            Mfm(npm,i) = fm(deck,hm,hn,Vji);
-        end
+    Mfm(npm,2) = fm(deck,hm,hn,[npm,np,1,npmm,npmmm,2,3,4,1,np]);
 
-        Vji(6:10) = [npm,np,1,npmm,npmmm];
-        Mfm(npm,npm) = fm(deck,hm,hn,Vji);
+    Mfm(npm,npm) = fm(deck,hm,hn,[npm,np,1,npmm,npmmm,npm,np,1,npmm,npmmm]);
 
-        Vji(6:10) = [np,1,2,npm,npmm];
-        Mfm(npm,np) = fm(deck,hm,hn,Vji);
+    Mfm(npm,np) = fm(deck,hm,hn,[npm,np,1,npmm,npmmm,np,1,2,npm,npmm]);
 
-        % Line np %
+    % Line np %
 
-        Vji = [np,1,2,npm,npmm,1,2,3,np,npm];
-        Mfm(np,1) = fm(deck,hm,hn,Vji);
-
-        Vji(6:10) = [2,3,4,1,np];
-        Mfm(np,2) = fm(deck,hm,hn,Vji);
-
-        for i = 3:npmm
-            Vji(6:10) = [i,i+1,i+2,i-1,i-2];
-            Mfm(np,i) = fm(deck,hm,hn,Vji);
-        end
-
-        Vji(6:10) = [npm,np,1,npmm,npmmm];
-        Mfm(np,npm) = fm(deck,hm,hn,Vji);
-
-        Vji(6:10) = [np,1,2,npm,npmm];
-        Mfm(np,np) = fm(deck,hm,hn,Vji);
+    Mfm(np,1) = fm(deck,hm,hn,[np,1,2,npm,npmm,1,2,3,np,npm]);
+    
+    Mfm(np,2) = fm(deck,hm,hn,[np,1,2,npm,npmm,2,3,4,1,np]);
+    
+    Mfm(np,npm) = fm(deck,hm,hn,[np,1,2,npm,npmm,npm,np,1,npmm,npmmm]);
+    
+    Mfm(np,np) = fm(deck,hm,hn,[np,1,2,npm,npmm,np,1,2,npm,npmm]);
       
 %---------------------------------------------------------------%
 %                      Splitting Scheme                         %
@@ -454,13 +410,11 @@ for t = t1:nmax
        Mf = dtau*(Mfn + Mfm);
        
         for lin = 1:np
-            htil(lin,:) = M1i*(M3*hn(lin,:)'+2*Lyh(lin,:)' + Mf(lin,:)');
+             htil(lin,:) = M1i*(M3*hn(lin,:)'+2*Lyh(lin,:)' + Mf(lin,:)');
         end
-        
-        for col = 1:np
-            hm1(:,col) = M2i*(htil(:,col)-M5*hn(:,col));
-        end
-        
+       
+       hm1(:,vcol) = M2i*(htil(:,vcol)-M5*hn(:,vcol));
+       
         if (max(max(abs(hm1-hm)))/max(max(abs(hm1)))) < 1e-8
             pass = 2;
         elseif k == 50;
@@ -512,17 +466,16 @@ for t = t1:nmax
         flag = 2;
     end
     
-     if mod(t,500.) == 0
-         if saveMode == 1
-            hn = hm1;
-            save testA.mat
+    if mod(t,500.) == 0
+        hn = hm1;
+        if saveMode == 1
+         	save testa
             saveMode = 2;
-         else
-            hn = hm1;
-            save testB.mat
+        else
+            save testb
             saveMode = 1;
-         end
-     end
+        end
+    end
         
     end
     
@@ -534,9 +487,10 @@ for t = t1:nmax
     
     hn = hm1;
 toc
+
 if t == 134250
     break
-end    
+end
 end
 
-save test.mat
+save test
