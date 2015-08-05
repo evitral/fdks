@@ -11,7 +11,7 @@
 
 Z = hy;   % escolho aqui a matriz referente a Z
 
-dX = 2;
+dX = 1;
 
 nc = size(Z,1);
 
@@ -42,4 +42,4 @@ X2 = X2 - 128;
 
 ZV = [X1 X2 Zc];
 
-save h0fft.dat ZV -ASCII
+save h41960fft.dat ZV -ASCII

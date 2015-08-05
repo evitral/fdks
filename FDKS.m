@@ -11,7 +11,7 @@ clear variables
 fid = fopen('log10L1.txt','w');
 fprintf(fid, ['log10L1' '\n']);
 
-ld = 1;   % ld = 1: load file
+ld = 2;   % ld = 1: load file
 
 if ld == 1
     
@@ -27,7 +27,7 @@ else
 %---------------------------------------------------------------%
 
 alpha = 0.15;      % unclear physical meaning (B&H, alpha = 0)
-teta  = 0.75;    % angle of incidence of the beam (normal, teta=0)
+teta  = 0.5236;    % angle of incidence of the beam (normal, teta=0)
 
 s = sin(teta);     % sin teta
 c = cos(teta);     % cos teta
@@ -50,11 +50,11 @@ dE = 1.25;         % surface diffusion activate energy
 %                           Mesh                                %
 %---------------------------------------------------------------%
 
-L = 63.5;
+L = 510;
 
-np = 128;
+np = 256;
 
-dX = L./(np-1);
+dX = L/(np-1);
 dY = dX;
 
 %---------------------------------------------------------------%
@@ -62,12 +62,12 @@ dY = dX;
 %---------------------------------------------------------------%
 
 %dtau = 2*F*amu^2*dt/a;
-dtau = 0.0005;
-ntau = 1000000;
+dtau = 1.0;
+ntau = 3000;
 tmax = ntau*dtau;
 
 Kt = (amu^2*0.54*10^16/T)*exp(-dE*1.16*10^4/T)*exp(-amu^2*s^2/2);
-Kt = 0.1;
+Kt = 5.0;
 mut = 2*s^2-c^2-(amu*s*c)^2;
 
 nuxt = c*(3*s^2-c^2-(amu*s*c)^2); 
@@ -209,7 +209,7 @@ end
 saveMode = 1;
 
 for t = t1:nmax
-    tic
+   
     pass = 1;
     k = 1;
     hm = hn;
@@ -533,10 +533,7 @@ for t = t1:nmax
     % New matrices are old matrices %
     
     hn = hm1;
-toc
-if t == 134250
-    break
-end    
+  
 end
 
 save test.mat

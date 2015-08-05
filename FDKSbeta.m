@@ -8,15 +8,22 @@
 clear all
 clear variables
 
-fid = fopen('log10L1.txt','w');
-fprintf(fid, ['log10L1' '\n']);
+%condName = 'a0q1xdt1d0np512dx1d00sin28pix.mat';
+condName = 'roskrudx0d5.mat';
+condNameA = strcat('A',condName);
+condNameB = strcat('B',condName);
+
+disp('********************************')
+disp('   FDKS Simulation')
+disp(['   ',condName])
+disp(['   Start: ',datestr(now)])
 
 ld = 2;   % ld = 1: load file
 
 if ld == 2
     
-    load q1Ya015teta05236k5np256dx2pi28.mat
-    t1 = t;
+    load(condName)
+    t1 = t+1;
 
 else    
 
@@ -26,11 +33,11 @@ else
 %                Parameters of the dynamics                     %
 %---------------------------------------------------------------%
 
-alpha = 0.15;      % unclear physical meaning (B&H, alpha = 0)
-teta  = 0.5236;    % angle of incidence of the beam (normal, teta=0)
+alpha = 0;      % unclear physical meaning (B&H,roskru, alpha = 0)
+theta  = 1.159;    % angle of incidence of the beam (normal, teta=0)
 
-s = sin(teta);     % sin teta
-c = cos(teta);     % cos teta
+s = sin(theta);     % sin teta
+c = cos(theta);     % cos teta
 a = 2;             % penetration depth (nm)
 mu = 0.5;          % width of the energy distribution (nm)
 amu = a/mu;
@@ -50,11 +57,11 @@ dE = 1.25;         % surface diffusion activate energy
 %                           Mesh                                %
 %---------------------------------------------------------------%
 
-L = 510;
+L = 512;
 
-np = 256;
+np = 1024;
 
-dX = L/(np-1);
+dX = L/np;
 dY = dX;
 
 %---------------------------------------------------------------%
@@ -62,7 +69,7 @@ dY = dX;
 %---------------------------------------------------------------%
 
 %dtau = 2*F*amu^2*dt/a;
-dtau = 0.1;
+dtau = 0.01; %roskru
 ntau = 1000000;
 tmax = ntau*dtau;
 
@@ -72,6 +79,11 @@ mut = 2*s^2-c^2-(amu*s*c)^2;
 
 nuxt = c*(3*s^2-c^2-(amu*s*c)^2); 
 
+%Kt=1.0;
+%mut=-1.0;
+%nuxt=0.5;
+
+
 %---------------------------------------------------------------%
 %                      Useful constants                         %
 %---------------------------------------------------------------%
@@ -80,21 +92,30 @@ Dxx = (c^2-4*s^2+2*amu^2*s^2*(c^2-(2/3)*s^2)+(amu^4/3)*s^4*c^2);
 
 Dxy = 2*(c^2-2*s^2+(amu*s*c)^2); % 2 times Dxy actually
 
+%Dxx=0;
+%Dxy=0;
+
 alphat = (dtau/4)*alpha;
 
 beta = (Dxx+Kt)/(dX^4);
 beta2 = (dtau/2)*beta;  
-gamma = Kt/(dY^4);
+gamma = (Kt)/(dY^4);
 gamma2 = (dtau/2)*gamma;
 
 delta = mut/dX^2;   % d^2h/dX^2
 zeta = c^2/dY^2;   % d^2h/dY^2
 
+%zeta = 1.0;
+
 eta = nuxt/(2*dX^2);   % (dh/dX)^2
 psi = c^3/(2*dY^2);   % (dh/dY)^2
 
+%psi = 0.5;
+
 omega = (Dxy-2*Kt)/(dX^2*dY^2);   % d^4h/dX^2dY^2
 phi = c^2/dY^4;   % d^4h/dY^4
+
+%phi=0;
 
 deck = [delta,zeta,eta,psi,omega,phi];
 
@@ -163,9 +184,10 @@ hm1 = zeros(np,np);
 
 for y = 1:np
     for x = 1:np
-        %hn(y,x) = 0.1*(2*rand-1);
+        hn(y,x) = 0.1*(2*rand-1);
         %hn(y,x)= 0.1*rand;
-        hn(y,x) = 0.1*sin(20.728*2*pi()*y/(np+1));
+        %hn(y,x) = 0.1*sin(2*2*pi()*y/(np+1));
+        %hn(y,x) = 0.1*sin(14*2*pi()*x/(L));
     end
 end
 
@@ -175,18 +197,31 @@ h0 = hn;       % keeps the initial conditions
 %                        Finders Keepers                        %
 %---------------------------------------------------------------%
 
-maxHN = zeros(1,ntau/10); % Keeps highest hn values
-maxIT = zeros(1,ntau/10); % Records the internal iterations value
+tdata = 10.;    % data stored after \tdata time steps
+tsave = 500.;   % data saved after \tdata time steps
 
-movieA = [10  30  60 100 150 200 250 300 350 400 ...
-          450 500 600 700 850 1000 1250 1500 2000 2500 ... 
-          3000 3500 4000 4500 5000 5500 6000 6500 7000 7500 ...
+maxHN = zeros(1,ntau/tdata); % Keeps highest hn values
+maxIT = zeros(1,ntau/tdata); % Records the internal iterations value
+
+% movieA = [10  30  60 100 150 200 250 300 350 400 ...
+%           450 500 600 700 850 1000 1250 1500 2000 2500 ... 
+%           3000 3500 4000 4500 5000 5500 6000 6500 7000 7500 ...
+%           8000 8500 9000 9500 10000 10500 11000 11500 12000 12500 ...
+%           13000 14000 15000 16000 17000 18000 20000 23000 26000 30000 ...
+%           50000 100000 150000 200000 250000 300000 350000 400000 450000 ...
+%           500000 550000 600000 650000 700000 800000 900000];     
+
+movieA = [10  20 30 40 60 70 80 90 100 110 130 150 170 200 220 250 270 300 350 400 ...
+          450 500 550 600 650 700 750 850 1000 1200 1350 1500 1600 1700 1800 1900 2000 2100 ... 
+          2200 2400 2500 2600 2700 2800 2900 3000 3100 3200 3300 3400 3500 3600 3700 ...
+          3800 3900 4000 4200 4500 ...
+          5000 5500 6000 6500 7000 7500 ...
           8000 8500 9000 9500 10000 10500 11000 11500 12000 12500 ...
           13000 14000 15000 16000 17000 18000 20000 23000 26000 30000 ...
-          50000 100000 150000 200000 250000 300000 350000 400000 450000 ...
-          500000 550000 600000 650000 700000 800000 900000];     
- 
-movieH = zeros(np,np,66);
+          40000 50000 60000 70000 80000 100000]; 
+      
+      
+movieH = zeros(np,np,90);
 
 %---------------------------------------------------------------%
 %                             Main                              %
@@ -199,13 +234,15 @@ Mf  = zeros(np,np);
 Lyh=zeros(np,np);
 
 nmax = int32(tmax/dtau+1);
-L1=zeros(1,nmax/10);
-
-flag = 1; % L1 control
+L1 = zeros(1,nmax/tdata);
 
 end
+fid = fopen('log10L1.txt','w');
+fprintf(fid, ['log10L1' '\n']);
 
 saveMode = 1;
+
+flag = 1; % L1 control
 
 sg2at = 6*gamma2+alphat;
 
@@ -218,7 +255,7 @@ vlinmm = 3:npmm;
 vcolmm = 3:npmm;
 
 for t = t1:nmax
-tic
+    
     pass = 1;
     k = 1;
     hm = hn;
@@ -415,10 +452,10 @@ tic
        
        hm1(:,vcol) = M2i*(htil(:,vcol)-M5*hn(:,vcol));
        
-        if (max(max(abs(hm1-hm)))/max(max(abs(hm1)))) < 1e-8
+        if (max(max(abs(hm1-hm)))/max(max(abs(hm1)))) < 1e-10
             pass = 2;
-        elseif k == 50;
-            disp('Iterations number exceeded!')
+        elseif k == 200;
+            disp('   Iterations number exceeded!')
             flag = 2;
             break;
         else
@@ -433,9 +470,9 @@ tic
 %              Routine after each 10 time steps                 %
 %---------------------------------------------------------------%
     
-    if mod(t,10.) == 0
+    if mod(t,tdata) == 0
     
-    tr = t/10;
+    tr = t/tdata;
         
     %ghn(:,:,(t/10))=hn;
     maxHN(tr) = max(max(abs(hn)));  % Keeps max values
@@ -462,17 +499,17 @@ tic
     
     % L1 as a LimitBreak %
     
-    if L1(tr) <1E-6
+    if L1(tr) <1E-7  % OLHAAA AQUI OHHH
         flag = 2;
     end
     
-    if mod(t,500.) == 0
+    if mod(t,tsave) == 0
         hn = hm1;
         if saveMode == 1
-         	save testa
+         	save(condNameA)
             saveMode = 2;
         else
-            save testb
+            save(condNameB)
             saveMode = 1;
         end
     end
@@ -486,11 +523,10 @@ tic
     % New matrices are old matrices %
     
     hn = hm1;
-toc
 
-if t == 134250
-    break
-end
 end
 
-save test
+save(condName)
+
+disp(['   End:   ',datestr(now)])
+disp('********************************')
